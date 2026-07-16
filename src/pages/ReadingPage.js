@@ -1,107 +1,133 @@
-import React, { useState, useEffect } from "react";
-import { Container, Button, Box, Card, Stack, CardMedia, CardActionArea, Typography, CardContent } from "@mui/material";
+import React, { useEffect } from "react";
+import {
+  Container,
+  Button,
+  Box,
+  Card,
+  Stack,
+  CardMedia,
+  CardActionArea,
+  Typography,
+  CardContent,
+} from "@mui/material";
 import { ClipLoader } from "react-spinners";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import api from "../apiService";
+
+import { useDispatch, useSelector } from "react-redux";
+
+import {
+  getFavorites,
+  removeFavorite,
+} from "../service/favoriteSlice";
 
 const BACKEND_API = process.env.REACT_APP_BACKEND_API;
 
 const ReadingPage = () => {
-  const [books, setBooks] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [removedBookId, setRemovedBookId] = useState("");
-  const navigate = useNavigate()
+  const dispatch = useDispatch();
+
+  const navigate = useNavigate();
+
+  const { books, loading, error } = useSelector(
+    (state) => state.favorite
+  );
+
+  useEffect(() => {
+    dispatch(getFavorites());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
   const handleClickBook = (bookId) => {
     navigate(`/books/${bookId}`);
   };
 
-  const removeBook = (bookId) => {
-    setRemovedBookId(bookId);
+  const handleRemove = async (bookId) => {
+    await dispatch(removeFavorite(bookId));
+
+    toast.success("The book has been removed");
   };
-
-  useEffect(() => {
-    if (removedBookId) return;
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get(`/favorites`);
-        setBooks(res.data);
-      } catch (error) {
-        toast(error.message);
-      }
-      setLoading(false);
-    };
-    fetchData();
-  }, [removedBookId]);
-
-  useEffect(() => {
-    if (!removedBookId) return;
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        await api.delete(`/favorites/${removedBookId}`);
-        toast.success("The book has been removed");
-        setRemovedBookId("");
-      } catch (error) {
-        toast(error.message);
-      }
-      setLoading(false);
-    };
-    fetchData();
-  }, [removedBookId]);
 
   return (
     <Container>
-      <Typography variant="h3" sx={{ textAlign: "center" }} m={3}>Book Store</Typography>
+      <Typography
+        variant="h3"
+        textAlign="center"
+        m={3}
+      >
+        Book Store
+      </Typography>
+
       {loading ? (
-        <Box sx={{ textAlign: "center", color: "primary.main" }} >
-          <ClipLoader color="inherit" size={150} loading={true} />
+        <Box textAlign="center">
+          <ClipLoader size={150} />
         </Box>
       ) : (
-        <Stack direction="row" spacing={2} justifyContent="space-around" flexWrap={"wrap"}>
+        <Stack
+          direction="row"
+          spacing={2}
+          justifyContent="space-around"
+          flexWrap="wrap"
+        >
           {books.map((book) => (
             <Card
               key={book.id}
               sx={{
                 width: "12rem",
                 height: "27rem",
-                marginBottom: "2rem",
-              }}>
+                mb: 2,
+              }}
+            >
               <CardActionArea>
                 <CardMedia
                   component="img"
                   image={`${BACKEND_API}/${book.imageLink}`}
-                  alt={`${book.title}`}
-                  onClick={() => handleClickBook(book.id)}
+                  alt={book.title}
+                  onClick={() =>
+                    handleClickBook(book.id)
+                  }
                 />
+
                 <CardContent>
-                  <Typography gutterBottom variant="h5" component="div">
-                    {`${book.title}`}
+                  <Typography
+                    gutterBottom
+                    variant="h5"
+                  >
+                    {book.title}
                   </Typography>
-                  <Typography gutterBottom variant="body1" component="div">
-                    {`${book.author}`}
+
+                  <Typography variant="body1">
+                    {book.author}
                   </Typography>
+
                   <Button
                     sx={{
-                      position: "absolute", top: "5px", right: "5px",
-                      backgroundColor: "secondary.light", color: "secondary.contrastText",
-                      padding: "0", minWidth: "1.5rem"
+                      position: "absolute",
+                      top: 5,
+                      right: 5,
+                      backgroundColor: "secondary.light",
+                      color:
+                        "secondary.contrastText",
+                      minWidth: "1.5rem",
+                      p: 0,
                     }}
-                    size="small"
-                    onClick={() => removeBook(book.id)}
+                    onClick={() =>
+                      handleRemove(book.id)
+                    }
                   >
                     &times;
                   </Button>
                 </CardContent>
-
               </CardActionArea>
             </Card>
           ))}
         </Stack>
       )}
-    </Container >
+    </Container>
   );
 };
 
